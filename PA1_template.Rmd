@@ -1,25 +1,96 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Peer Assessment 1"
+
+date: "February 15, 2015"
+output: html_document
 ---
 
+##Introduction
+The dataset of a personal activity monitoning device through this peer assessment 1. The dataset is composed of two months of data from an anonymous individual during the month of Octover and November 2012. Each data is collected at 5 minute interverls through out the day.
+The data is anlayized as follows. 
 
-## Loading and preprocessing the data
+##Loading and preprocessing the data
+The data for this assignment is loaded from the file "activity.csv" and stored to **activity_data**, then all missing values are eliminated by *complete.case()*. Finally the data without missing values are stored in **basic_data**.
+```{r}
+activity_data <- read.csv("activity.csv", header = TRUE, stringsAsFactor = FALSE)
+str(activity_data)
+base_data <- activity_data[complete.cases(activity_data),]
+date_data <- as.Date(base_data$date)
+```
 
+##What is mean total number of steps taken per day?
+The total number of steps taken per day is calculated by applying the function *tapply()* to **base_data**, then the histogram of the total number of steps taken each day is plotted by the function *hist()* on R. 
 
+```{r}
+steps_perday <- tapply(base_data$steps, base_data$date, sum)
+hist(steps_perday, breaks = 10, main = "Total number of steps taken each day", xlab = "Step")
+```
 
-## What is mean total number of steps taken per day?
+The mean and median of the total number of steps taken per day are as follows.
+```{r}
+mean(steps_perday)
+median(steps_perday)
+```
+##What is the average daily activity pattern?
+Averaged steps is calculated by the function *tapply()* and stored to **averaged_steps**. The following figure shows the averaged number of steps accross all days. 
+```{r}
+averaged_steps <- tapply(base_data$steps, base_data$interval, mean)
+plot(x = names(averaged_steps), y = averaged_steps, type = "l", main = "Averaged number of steps accross all days", xlab = "Time (min)", ylab = "Averaged number of steps")
+```
 
+```{r}
+averaged_steps[which.max(averaged_steps)]
+```
+As the result, 835 in 5-muninute interval shows contains the maximum number of steps 206. 
 
+##Input missing values
+According to the following calculation,
+```{r}
+sum(is.na(activity_data$steps))
+```
+the total number of missing values (NA) is 2304. 
 
-## What is the average daily activity pattern?
+```{r}
+activity_data_modify <- activity_data
+activity_data_modify[which(is.na(activity_data_modify$steps)), "steps"] <-
+    averaged_steps[as.character(activity_data_modify[which(is.na(activity_data_modify$steps)), "interval"])]
+```
+The number of missing value for the new dataset **activity_data_modify** is 
+```{r}
+sum(is.na(activity_data_modify$steps))
+```
 
+Then, the histgram of total number of steps taken each day with imputing missing values is as follow.
+```{r}
+steps_perday_modify <- tapply(activity_data_modify$steps, activity_data_modify$date, sum)
+hist(steps_perday_modify, breaks = 10, main = "Total number of steps taken each day with imputing missing values", xlab = "Step")
+```
 
+And then, mean and median for the second data set with imputing missing values are as follows.
 
-## Imputing missing values
+```{r}
+mean(steps_perday_modify)
+median(steps_perday_modify)
+```
 
+#Are there differences in activity patterns weedays and weekends?
+According to the following R calculations, averaged number steps across weekdays and averaged number steps across weekend are plotted as a panel plot.
+```{r}
+activity_data_modify$date <- as.Date(activity_data_modify$date)
+activity_data_modify$weekday <- weekdays(activity_data_modify$date) 
+activity_data_modify$weekorend <- as.factor(c("Weekday", "Weekend"))
+activity_data_modify[activity_data_modify$weekday == "Sunday" | activity_data_modify$weekday == "Saturday", "weekorend"] <- factor("Weekend")
+activity_data_modify[!(activity_data_modify$weekday == "Sunday" | activity_data_modify$weekday == "Saturday"), "weekorend"] <- factor("Weekday")
+```
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+activity_data_modify_weekday <- subset(activity_data_modify, weekorend == "Weekday")
+activity_data_modify_weekend <- subset(activity_data_modify, weekorend == "Weekend")
+averaged_steps_weekday <- tapply(activity_data_modify_weekday$steps, activity_data_modify_weekday$interval, mean)
+averaged_steps_weekend <- tapply(activity_data_modify_weekend$steps, activity_data_modify_weekend$interval, mean)
+par(mfrow = c(2,1))
+plot(x = names(averaged_steps_weekday), y = averaged_steps_weekday, type = "l",
+     main = "Averaged number steps across weekdays", xlab = "Time (min)", ylab = "Averaged number of steps", ylim = c(0, 250))
+plot(x = names(averaged_steps_weekend), y = averaged_steps_weekend, type = "l",
+     main = "Averaged number steps across weekend", xlab = "Time (min)", ylab = "Averaged number of steps", ylim = c(0, 250))
+```
